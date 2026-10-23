@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: API приемки маркированной поставки
+  title: API приёмки маркированной поставки
   version: 0.1.0
 servers:
   - url: https://api.example.com/v1
@@ -24,12 +24,48 @@ paths:
           schema:
             type: string
             format: uuid
-     responses:
-       '201':
-         description: Приемка зафиксирована
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptanceRequest'
+      responses:
+        '201':
+          description: Приёмка зафиксирована
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: JWT  
+      bearerFormat: JWT
+  schemas:
+    AcceptanceRequest:
+      type: object
+      required: [acceptedAt, items]
+      properties:
+        acceptedAt:
+          type: string
+          format: date-time
+          description: Дата и время фактической приёмки (UTC)
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/AcceptedItem'
+        comment:
+          type: string
+          maxLength: 500
+          description: Комментарий; при расхождении количества сервер требует его заполнить
+    AcceptedItem:
+      type: object
+      required: [gtin, acceptedQuantity]
+      properties:
+        gtin:
+          type: string
+          pattern: '^[0-9]{14}$'
+          description: Код товара GTIN, 14 цифр
+        acceptedQuantity:
+          type: integer
+          minimum: 0
+          description: Фактически принятое количество  
