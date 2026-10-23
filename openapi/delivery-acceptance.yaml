@@ -1,1 +1,18 @@
-#
+openapi: 3.0.3
+info:
+  title: API приемка маркированной поставки
+  version: 0.1.0
+paths:
+  /deliveries/{deliveryId}/acceptance:
+    post:
+      summary: Подтвердить приемку поставки
+      parameters:
+        - name: deliveryId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '201':
+          description: Приемка зафиксирована        
