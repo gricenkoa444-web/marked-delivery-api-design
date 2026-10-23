@@ -9,6 +9,7 @@ paths:
   /deliveries/{deliveryId}/acceptance:
     post:
       summary: Подтвердить приёмку поставки
+      description: Фиксирует факт приёмки. Исполнитель определяется по токену авторизации. Повтор запроса с тем же Idempotency-Key возвращает результат первой попытки.
       security:
         - bearerAuth: []
       parameters:
@@ -33,12 +34,73 @@ paths:
       responses:
         '201':
           description: Приёмка зафиксирована
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptanceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
 components:
   securitySchemes:
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
+  responses:
+    BadRequest:
+      description: Запрос неверен по форме (невалидный JSON, нет обязательного поля, GTIN не из 14 цифр)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Токен отсутствует, недействителен или истёк
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: У пользователя нет права подтверждать приёмку
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Поставка не найдена
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Статус поставки не допускает приёмку (уже подтверждена или отменена)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    UnprocessableEntity:
+      description: Форма верна, но нарушено бизнес-правило (расхождение без комментария, GTIN нет в поставке)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServiceUnavailable:
+      description: Сервис временно недоступен, запрос можно повторить с тем же ключом
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   schemas:
     AcceptanceRequest:
       type: object
@@ -68,4 +130,34 @@ components:
         acceptedQuantity:
           type: integer
           minimum: 0
-          description: Фактически принятое количество  
+          description: Фактически принятое количество
+    AcceptanceResponse:
+      type: object
+      required: [deliveryId, status, acceptedBy, registeredAt]
+      properties:
+        deliveryId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [ACCEPTED, ACCEPTED_WITH_DISCREPANCY]
+        acceptedBy:
+          type: string
+          description: Исполнитель, определённый сервером по токену
+        registeredAt:
+          type: string
+          format: date-time
+          description: Время фиксации приёмки на сервере
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: Машиночитаемый код ошибки
+        message:
+          type: string
+          description: Описание для человека
+        field:
+          type: string
+          description: Поле, вызвавшее ошибку (если применимо)
