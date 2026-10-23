@@ -1,11 +1,16 @@
 openapi: 3.0.3
 info:
-  title: API приемка маркированной поставки
+  title: API приемки маркированной поставки
   version: 0.1.0
+servers:
+  - url: https://api.example.com/v1
+    description: Учебный сервер (вымышленный)
 paths:
   /deliveries/{deliveryId}/acceptance:
     post:
-      summary: Подтвердить приемку поставки
+      summary: Подтвердить приёмку поставки
+      security:
+        - bearerAuth: []
       parameters:
         - name: deliveryId
           in: path
@@ -13,6 +18,18 @@ paths:
           schema:
             type: string
             format: uuid
-      responses:
-        '201':
-          description: Приемка зафиксирована        
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            format: uuid
+     responses:
+       '201':
+         description: Приемка зафиксирована
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT  
